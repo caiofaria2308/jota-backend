@@ -54,10 +54,23 @@ class SubscriptionPlan(models_safedelete.SafeDeleteModel):
 
 @with_author
 class User(AbstractUser):
+    WRITER = "writer"
+    READER = "reader"
+    USER_TYPE_CHOICES = (
+        (WRITER, _("Escritor")),
+        (READER, _("Leitor")),
+    )
+
     subscription_plan = models.ForeignKey(
         SubscriptionPlan,
         on_delete=models.SET_NULL,
         related_name="users",
+    )
+    user_type = models.CharField(
+        max_length=50,
+        choices=USER_TYPE_CHOICES,
+        default=READER,
+        verbose_name=_("Tipo de usuário"),
     )
 
     def __str__(self):
