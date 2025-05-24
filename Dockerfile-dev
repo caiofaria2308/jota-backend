@@ -1,0 +1,31 @@
+# Use the official Python runtime image
+FROM python:3.13-alpine
+ 
+# Create the app directory
+RUN mkdir /app/
+RUN mkdir /app/db/
+ 
+# Set the working directory inside the container
+WORKDIR /app
+ 
+# Upgrade pip
+RUN pip install --upgrade pip 
+ 
+# Copy the Django project  and install dependencies
+COPY ./src/requirements.txt  ./
+ 
+# run this command to install all packages and depedencies
+RUN \
+ apk add --no-cache postgresql-libs && \
+ apk add --no-cache --virtual .build-deps gcc musl-dev postgresql-dev && \
+ python3 -m pip install -r ./requirements.txt --no-cache-dir && \
+ apk --purge del .build-deps
+ 
+# Copy the Django project to the container
+COPY ./src ./
+ 
+# Expose the Django port
+EXPOSE 8000
+ 
+# Run Django’s development server
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

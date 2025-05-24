@@ -5,6 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
+*.env
+*.python-version
 
 # Distribution / packaging
 .Python
@@ -172,3 +174,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+
+# Docker data
+.docker/
