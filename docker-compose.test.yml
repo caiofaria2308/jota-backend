@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./.docker/postgres:/app/db
+    env_file:
+      - ./src/.env
+    environment:
+      - POSTGRES_DB=jota
+      - POSTGRES_USER=juser
+      - POSTGRES_PASSWORD=Jpass@master230525
+
+  test-db:
+    image: postgres:17
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=jota_test
+      - POSTGRES_USER=juser
+      - POSTGRES_PASSWORD=Jpass@master230525
+    tmpfs:
+      - /var/lib/postgresql/data  # Use tmpfs for faster tests
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile-dev
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./src/.env
+    depends_on:
+      - db
+    volumes:
+      - ./src:/app
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile-dev
+    env_file:
+      - ./src/.env.test
+    environment:
+      - POSTGRES_HOST=test-db
+      - POSTGRES_DB=jota_test
+    depends_on:
+      - test-db
+    volumes:
+      - ./src:/app
+    working_dir: /app
+    command: >
+      sh -c "
+        echo 'Waiting for test database...' &&
+        while ! nc -z test-db 5432; do
+          sleep 1
+        done &&
+        echo 'Test database is ready!' &&
+        python -m pytest --tb=short -v
+      "
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./.docker/redis:/app/db
+
+  djangoq:
+    build:
+      context: .
+      dockerfile: Dockerfile-dev
+    command: python manage.py qcluster
+    env_file:
+      - ./src/.env
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./src:/app
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"
+    volumes:
+      - ./.docker/mailhog:/app/db

@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 from safedelete import models as models_safedelete
 from author.decorators import with_author
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import ArrayField
 
@@ -41,7 +41,6 @@ class SubscriptionPlan(models_safedelete.SafeDeleteModel):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = _("Plano de Assinatura")
@@ -65,6 +64,8 @@ class User(AbstractUser):
         SubscriptionPlan,
         on_delete=models.SET_NULL,
         related_name="users",
+        null=True,
+        blank=True,
     )
     user_type = models.CharField(
         max_length=50,

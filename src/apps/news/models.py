@@ -4,10 +4,13 @@ from django.db import models
 from safedelete import models as models_safedelete
 from django_q.tasks import schedule
 from author.decorators import with_author
-from django.utils.translation import ugettext_lazy as _
+from django.contrib.auth import get_user_model
+from django.utils.translation import gettext_lazy as _
 from django.contrib.postgres.fields import ArrayField
 
 from apps.account.models import SubscriptionPlan
+
+User = get_user_model()
 
 
 @with_author
@@ -23,7 +26,7 @@ class New(models_safedelete.SafeDeleteModel):
         (DRAFT, _("Rascunho")),
     )
 
-    _safedelete_policy = models_safedelete.CASCADE
+    _safedelete_policy = models_safedelete.SOFT_DELETE_CASCADE
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4)
     title = models.CharField(max_length=255)
     subtitle = models.CharField(max_length=500)
@@ -34,7 +37,8 @@ class New(models_safedelete.SafeDeleteModel):
     )
     published_at = models.DateTimeField(null=True, blank=True)
     author = models.ForeignKey(
-        "account.User",
+        User,
+        verbose_name=_("Autor da noticia"),
         on_delete=models.PROTECT,
         related_name="news",
     )
@@ -59,7 +63,7 @@ class New(models_safedelete.SafeDeleteModel):
             # Schedule the task to send email alerts
             schedule(
                 "apps.news.tasks.publish_news",
-                news_id=self.id,
+                news_id=str(self.id),
                 schedule_type="O",
                 next_run=self.published_at,
             )

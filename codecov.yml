@@ -1,0 +1,25 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 1%
+    patch:
+      default:
+        target: 80%
+        threshold: 1%
+
+ignore:
+  - "src/manage.py"
+  - "src/setting/wsgi.py"
+  - "src/setting/asgi.py"
+  - "src/**/migrations/"
+  - "src/**/tests/"
+  - "src/**/__pycache__/"
+  - "src/conftest.py"
+  - "src/test_patches.py"
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false

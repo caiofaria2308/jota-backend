@@ -19,3 +19,30 @@ services:
       - db
     volumes:
       - ./src:/app
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./.docker/redis:/app/db
+
+  djangoq:
+    build:
+      context: .
+      dockerfile: Dockerfile-dev
+    command: python manage.py qcluster
+    env_file:
+     - ./src/.env
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./src:/app
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"
+    volumes:
+      - ./.docker/mailhog:/app/db

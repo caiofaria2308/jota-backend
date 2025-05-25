@@ -24,8 +24,6 @@ RUN \
 # Copy the Django project to the container
 COPY ./src ./
  
-# Expose the Django port
-EXPOSE 8000
- 
-# Run Django’s development server
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+EXPOSE 8000/tcp

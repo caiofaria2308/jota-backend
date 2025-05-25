@@ -1,0 +1,154 @@
+name: Tests and Coverage
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: Jpass@master230525
+          POSTGRES_USER: juser
+          POSTGRES_DB: jota_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('src/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r src/requirements.txt
+
+    - name: Wait for PostgreSQL
+      run: |
+        while ! pg_isready -h localhost -p 5432 -U juser; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+
+    - name: Run tests with coverage
+      env:
+        POSTGRES_HOST: localhost
+        POSTGRES_DB: jota_test
+        POSTGRES_USER: juser
+        POSTGRES_PASSWORD: Jpass@master230525
+        POSTGRES_PORT: 5432
+        SECRET_KEY: test-secret-key-for-ci-only
+        DEBUG: True
+      run: |
+        cd src
+        python -m pytest --cov=apps --cov-report=xml --cov-report=term --cov-branch -v
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: src/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+    - name: Generate coverage badge
+      run: |
+        cd src
+        python -c "
+        import xml.etree.ElementTree as ET
+        try:
+            tree = ET.parse('coverage.xml')
+            root = tree.getroot()
+            coverage = float(root.attrib['line-rate']) * 100
+            print(f'Coverage: {coverage:.1f}%')
+            if coverage < 80:
+                print('⚠️ Coverage below 80%')
+                exit(1)
+            else:
+                print('✅ Coverage above 80%')
+        except Exception as e:
+            print(f'Could not parse coverage: {e}')
+            exit(1)
+        "
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install linting dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort
+
+    - name: Check code formatting with Black
+      run: |
+        cd src
+        black --check --diff .
+
+    - name: Check import sorting with isort
+      run: |
+        cd src
+        isort --check-only --diff .
+
+    - name: Lint with flake8
+      run: |
+        cd src
+        flake8 apps setting --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 apps setting --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+
+  docker-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build test image
+      run: |
+        docker build -f Dockerfile-dev -t jota-backend-test .
+
+    - name: Run tests in Docker
+      run: |
+        docker compose -f docker-compose.test.yml up -d test-db
+        sleep 10
+        docker compose -f docker-compose.test.yml run --rm test pytest --tb=short -v
+
+    - name: Cleanup Docker
+      if: always()
+      run: |
+        docker compose -f docker-compose.test.yml down -v

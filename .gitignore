@@ -176,5 +176,3 @@ cython_debug/
 .pypirc
 
 
-# Docker data
-.docker/
