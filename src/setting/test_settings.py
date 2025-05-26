@@ -77,7 +77,7 @@ if POSTGRES_HOST == "test-db":
 else:
     # Running outside Docker (local development)
     DB_HOST = "localhost"
-    DB_PORT = "5433"  # Use different port for test database
+    DB_PORT = "5432"  # Use different port for test database
 
 DATABASES = {
     "default": {
