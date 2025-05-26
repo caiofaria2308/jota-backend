@@ -46,7 +46,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r src/requirements.txt
-        copy src/.env.example src/.env
+        cp src/.env.example src/.env
 
     - name: Wait for PostgreSQL
       run: |
